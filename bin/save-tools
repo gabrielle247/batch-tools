@@ -1,0 +1,7 @@
+#!/bin/bash
+cd ~/batch_tech
+echo "☁️  Backing up Batch Tech tools..."
+git add .
+git commit -m "Auto-save: $(date)" > /dev/null 2>&1
+git push
+echo "✅ Saved to Cloud."

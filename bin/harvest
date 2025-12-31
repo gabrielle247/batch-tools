@@ -1,0 +1,38 @@
+#!/bin/bash
+
+STAGING="$HOME/batch_tech/found_tools"
+mkdir -p "$STAGING"
+
+echo "🕵️  Scanning for lost Tools (.sh, .bat, Makefiles, 'batchtech')..."
+echo "    (Skipping project junk like node_modules, build folders...)"
+
+# Directories to IGNORE (Prune list)
+PRUNE_DIRS="-name .git -o -name node_modules -o -name .dart_tool -o -name build -o -name .idea -o -name android -o -name ios -o -name flutter -o -name batch_tech"
+
+# Find logic:
+# 1. Prune the bad directories
+# 2. Look for files ending in .sh OR .bat
+# 3. OR files named Makefile
+# 4. OR files containing "batchtech" or "Greyway" (via grep)
+
+find "$HOME" -maxdepth 6 \
+    -type d \( $PRUNE_DIRS \) -prune -o \
+    -type f \( \
+        -name "*.sh" -o \
+        -name "*.bat" -o \
+        -name "Makefile" \
+    \) -print0 | while IFS= read -r -d '' file; do
+        
+        filename=$(basename "$file")
+        
+        # Don't copy if it's already in our bin
+        if [ -f "$HOME/batch_tech/bin/$filename" ]; then continue; fi
+
+        echo "📦 Found Tool: $file"
+        cp --backup=numbered "$file" "$STAGING/"
+done
+
+echo ""
+echo "✅ Scan Complete."
+echo "👉 Go here to review them: cd ~/batch_tech/found_tools"
+echo "   (Delete the trash, then run 'save-tools' to keep the rest)"

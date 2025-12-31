@@ -1,0 +1,19 @@
+MOVE = ./adb_move.sh
+
+# 1. Preset Games (Fast Mode)
+fifa:
+	@$(MOVE) "FIFA" "obb"
+
+game:
+	@$(MOVE) "GameData" "data"
+
+# 2. Interactive Mode (Paste Mode)
+# Run 'make paste-obb' then paste your path when asked
+paste-obb:
+	@read -p "Paste Path or Name: " p; $(MOVE) "$$p" "obb"
+
+paste-data:
+	@read -p "Paste Path or Name: " p; $(MOVE) "$$p" "data"
+
+paste-media:
+	@read -p "Paste Path or Name: " p; $(MOVE) "$$p" "media"

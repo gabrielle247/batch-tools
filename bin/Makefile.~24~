@@ -1,0 +1,143 @@
+.PHONY: help run run-verbose clean-run stop analyze format test dev-menu quick-run logs backup-lib commit push
+
+help:
+	@echo "╔════════════════════════════════════════════════════════════════╗"
+	@echo "║              FEES-UP DEVELOPMENT COMMANDS                      ║"
+	@echo "╚════════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "Quick Start:"
+	@echo "  make run              - Run app on Linux (hot reload)"
+	@echo "  make dev-menu         - Interactive development menu"
+	@echo ""
+	@echo "Running:"
+	@echo "  make run              - Run on Linux (default)"
+	@echo "  make run-verbose      - Run with verbose output"
+	@echo "  make quick-run        - Quick restart (stop + run)"
+	@echo ""
+	@echo "Building & Cleaning:"
+	@echo "  make clean-run        - Clean build + run"
+	@echo "  make clean            - Clean Flutter build"
+	@echo ""
+	@echo "Control:"
+	@echo "  make stop             - Kill all Flutter processes"
+	@echo "  make logs             - Show live logs"
+	@echo ""
+	@echo "Code Quality:"
+	@echo "  make analyze          - Run Flutter analyzer"
+	@echo "  make format           - Format code with dart format"
+	@echo "  make test             - Run tests"
+	@echo ""
+	@echo "Git Operations:"
+	@echo "  make commit MSG='...'  - Add all, commit with message and push"
+	@echo "  make push             - Push to current branch"
+	@echo ""
+	@echo "Debugging:"
+	@echo "  make pid              - Show Flutter process IDs"
+	@echo "  make health           - Check Flutter health"
+	@echo ""
+	@echo "Backups:"
+	@echo "  make backup-lib       - Snapshot lib/ to Desktop backups"
+	@echo ""
+
+run:
+	@if [ -f "assets/keys.env" ]; then \
+		export $$(cat assets/keys.env | grep -v '^#' | xargs); \
+	fi; \
+	flutter run -d linux \
+		--dart-define=SUPABASE_URL="$${SUPABASE_URL}" \
+		--dart-define=SUPABASE_ANON_KEY="$${SUPABASE_ANON_KEY}" \
+		--dart-define=POWERSYNC_ENDPOINT_URL="$${POWERSYNC_ENDPOINT_URL}" \
+		--dart-define=POWERSYNC_API_KEY="$${POWERSYNC_API_KEY}" \
+		--dart-define=ENVIRONMENT=development
+
+run-verbose:
+	@if [ -f "assets/keys.env" ]; then \
+		export $$(cat assets/keys.env | grep -v '^#' | xargs); \
+	fi; \
+	flutter run -d linux \
+		--dart-define=SUPABASE_URL="$${SUPABASE_URL}" \
+		--dart-define=SUPABASE_ANON_KEY="$${SUPABASE_ANON_KEY}" \
+		--dart-define=POWERSYNC_ENDPOINT_URL="$${POWERSYNC_ENDPOINT_URL}" \
+		--dart-define=POWERSYNC_API_KEY="$${POWERSYNC_API_KEY}" \
+		--dart-define=ENVIRONMENT=development \
+		--verbose
+
+clean-run: clean
+	@echo "🔨 Building and running..."
+	@if [ -f "assets/keys.env" ]; then \
+		export $$(cat assets/keys.env | grep -v '^#' | xargs); \
+	fi; \
+	flutter run -d linux \
+		--dart-define=SUPABASE_URL="$${SUPABASE_URL}" \
+		--dart-define=SUPABASE_ANON_KEY="$${SUPABASE_ANON_KEY}" \
+		--dart-define=POWERSYNC_ENDPOINT_URL="$${POWERSYNC_ENDPOINT_URL}" \
+		--dart-define=POWERSYNC_API_KEY="$${POWERSYNC_API_KEY}" \
+		--dart-define=ENVIRONMENT=development
+
+quick-run: stop run
+
+stop:
+	@echo "🛑 Stopping all Flutter processes..."
+	@pkill -f "flutter run" || true
+	@pkill -f "flutter.*linux" || true
+	@sleep 1
+	@echo "✅ Done"
+
+clean:
+	@echo "🧹 Cleaning Flutter build..."
+	flutter clean
+
+analyze:
+	@echo "🔍 Running Flutter analyze..."
+	flutter analyze
+
+format:
+	@echo "📐 Formatting code..."
+	dart format lib/
+
+test:
+	@echo "🧪 Running tests..."
+	flutter test
+
+dev-menu:
+	@bash dev.sh
+
+logs:
+	@if [ -f "/tmp/fees_up_dev.log" ]; then \
+		tail -f /tmp/fees_up_dev.log; \
+	else \
+		echo "No log file found"; \
+	fi
+
+pid:
+	@echo "Flutter process IDs:"
+	@pgrep -f "flutter run" || echo "No flutter run processes"
+	@pgrep -f "flutter.*linux" || echo "No flutter linux processes"
+
+health:
+	@flutter doctor
+
+backup-lib:
+	@bash scripts/backup_lib.sh
+
+# Git operations
+commit:
+ifndef MSG
+	@echo "❌ Error: MSG is required"
+	@echo "Usage: make commit MSG='your commit message'"
+	@exit 1
+endif
+	@echo "📝 Adding all changes..."
+	@git add .
+	@echo "💾 Committing with message: $(MSG)"
+	@git commit -m "$(MSG)"
+	@echo "🚀 Pushing to current branch..."
+	@git push
+	@echo "✅ Done!"
+
+push:
+	@echo "🚀 Pushing to current branch..."
+	@git push
+	@echo "✅ Done!"
+
+.DEFAULT_GOAL := help
