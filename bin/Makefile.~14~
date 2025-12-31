@@ -1,9 +1,0 @@
-.PHONY: hotspot help
-
-help:
-	@echo "Gnirehtet Makefile Commands:"
-	@echo "  make hotspot    - Start Gnirehtet with auto-restart on disconnect"
-	@echo "  make help       - Show this help message"
-
-hotspot:
-	@bash ./hotspot_phone.sh

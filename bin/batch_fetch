@@ -14,17 +14,27 @@ INPUT="$1"
 
 # Function: Is this a URL or a Search?
 if [[ "$INPUT" =~ ^https?:// ]]; then
-    # It is a URL (Instagram, TikTok, generic site)
-    echo "🔗 URL detected. Fetching metadata from platform..."
-    # We fetch single video metadata
+    # === URL MODE ===
+    echo "🔗 URL detected. Fetching metadata..."
+    
+    # We use jq with fallbacks (//) so it doesn't crash on missing data (like TikTok images having no duration)
     yt-dlp "$INPUT" --dump-json --skip-download --flat-playlist 2>/dev/null | \
-    jq -r '[.id, .title, .uploader, .duration_string, .webpage_url, ._type, .extractor] | @tsv' | \
+    jq -r '[
+        .id, 
+        (.title // "Unknown Title"), 
+        (.uploader // "Unknown Channel"), 
+        (.duration_string // .duration // "0:00"), 
+        .webpage_url, 
+        (._type // "video"), 
+        (.extractor // "generic")
+    ] | @tsv' | \
     while IFS=$'\t' read -r id title channel dur url type platform; do
         safe_title=$(echo "$title" | tr -d '\t' | sed "s/'/''/g")
         sqlite3 "$DB" "INSERT OR IGNORE INTO content VALUES ('$id', '$safe_title', '$channel', '$dur', '$url', '$type', '$platform');"
     done
+
 elif [ ! -z "$INPUT" ]; then
-    # It is a Search Query (YouTube only)
+    # === SEARCH MODE (YouTube Only) ===
     echo "🔍 Searching YouTube for: $INPUT..."
     yt-dlp "ytsearch20:$INPUT" --dump-json --skip-download --flat-playlist 2>/dev/null | \
     jq -r '[.id, .title, .uploader, .duration_string, .webpage_url, ._type, "youtube"] | @tsv' | \
@@ -35,7 +45,6 @@ elif [ ! -z "$INPUT" ]; then
 fi
 
 # Selector Interface
-# We show: [Platform] | Title | Channel
 SELECTED=$(sqlite3 "$DB" -separator $'\t' "SELECT platform, title, channel, duration, url, type FROM content ORDER BY rowid DESC;" | \
 fzf --delimiter=$'\t' --with-nth=1,2,3,4 --prompt="[$MODE] Select Content > " --border --height=50% --layout=reverse)
 
@@ -49,18 +58,32 @@ TYPE=$(echo "$SELECTED" | awk -F'\t' '{print $6}')
 
 echo "🚀 Downloading ($PLATFORM): $TITLE"
 
-# Smart Download Logic
-if [[ "$TYPE" == *"playlist"* ]]; then
-    # Playlist/Course -> Subfolder
-    SAFE_DIR="$DL_DIR/${TITLE//[^a-zA-Z0-9_ -]/}"
-    mkdir -p "$SAFE_DIR"
-    cd "$SAFE_DIR"
-    # BEST QUALITY: Video + Audio merged into MP4
+# === DOWNLOAD LOGIC ===
+
+# 1. Create Safe Title for Folder Names
+SAFE_TITLE="${TITLE//[^a-zA-Z0-9_ -]/}"
+[ -z "$SAFE_TITLE" ] && SAFE_TITLE="Untitled_Content"
+
+# 2. TikTok Specific Handling (Images/Slideshows)
+if [[ "$PLATFORM" == *"tiktok"* ]]; then
+    # Always create a subfolder for TikToks because they often split into multiple image files
+    TARGET_DIR="$DL_DIR/$SAFE_TITLE"
+    mkdir -p "$TARGET_DIR"
+    cd "$TARGET_DIR"
+    echo "📸 Fetching TikTok content into: $TARGET_DIR"
+    # We do NOT force MP4 here, allowing it to download images/audio naturally
+    yt-dlp "$URL"
+
+# 3. Playlists (Courses)
+elif [[ "$TYPE" == *"playlist"* ]]; then
+    TARGET_DIR="$DL_DIR/$SAFE_TITLE"
+    mkdir -p "$TARGET_DIR"
+    cd "$TARGET_DIR"
     yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 "$URL"
+
+# 4. Standard Single Video
 else
-    # Single Video
     cd "$DL_DIR"
-    # BEST QUALITY: Video + Audio merged into MP4
     yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 "$URL"
 fi
 
