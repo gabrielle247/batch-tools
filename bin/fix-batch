@@ -1,0 +1,8 @@
+#!/bin/bash
+# Nuke the database caches only (Keeps your downloaded videos safe)
+rm -f ~/batch_tech/learning/db/index.db
+rm -f ~/batch_tech/chill/db/index.db
+
+echo "🧹 Brain reset."
+echo "   Your downloaded videos are safe."
+echo "   The database will rebuild itself automatically next time you search."
