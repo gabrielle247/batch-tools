@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# GREYWAY.CO THEME CONFIG
+BLUE='\033[38;5;39m'
+GREY='\033[38;5;240m'
+WHITE='\033[1;37m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+clear
+echo -e "${BLUE}========================================"
+echo -e "   GREYWAY.CO | SIDE-CHICK MANAGER"
+echo -e "   ${GREY}Local-First Git Automation"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+
+do_commit() {
+    echo -e "${WHITE}Select a commit message:${NC}"
+    msgs=(
+        "feat: Initial commit for project scaffold"
+        "feat: Implemented new feature logic"
+        "feat: Added UI components for dashboard"
+        "feat: Integrated database schema"
+        "feat: Added authentication flow"
+        "feat: Created new screen layout"
+        "feat: Connected API endpoints"
+        "feat: Added assets and fonts"
+        "feat: Implemented sidebar navigation"
+        "feat: Added dark mode support"
+        "fix: Resolved null pointer exception"
+        "fix: Fixed layout overflow on sidebar"
+        "fix: Corrected typo in variable names"
+        "fix: Patched memory leak in stream"
+        "fix: Fixed responsive design issues"
+        "fix: Resolved database connection error"
+        "fix: Hotfix for production crash"
+        "fix: Adjusted colors to match Greyway theme"
+        "fix: Updated deprecated dependencies"
+        "fix: Fixed routing logic error"
+        "refactor: Cleaned up messy code"
+        "refactor: Optimized build method"
+        "refactor: Separated widgets into files"
+        "refactor: Improved state management"
+        "refactor: Renamed variables for clarity"
+        "refactor: Simplified boolean logic"
+        "refactor: Removed unused imports"
+        "refactor: Modularized repository pattern"
+        "refactor: Updated folder structure"
+        "refactor: Standardized code formatting"
+        "style: Polished UI padding and margins"
+        "style: Updated font to JetBrains Mono"
+        "style: Adjusted primary blue accent"
+        "style: Added subtle animations"
+        "style: Refined card borders and shadows"
+        "docs: Updated README.md"
+        "docs: Added comments for complex logic"
+        "docs: Documented API response format"
+        "test: Added unit tests for calculator"
+        "test: Added widget tests for login"
+        "chore: Ran flutter clean and get"
+        "chore: Updated pubspec.yaml versions"
+        "chore: Backup before major changes"
+        "chore: Removed dead code"
+        "chore: Organized assets folder"
+        "perf: Improved image loading speed"
+        "perf: Reduced app startup time"
+        "perf: Optimized SQLite query"
+        "ci: Added build workflow"
+        "wip: Work in progress, do not deploy"
+    )
+
+    for i in "${!msgs[@]}"; do
+        if [ $i -lt 10 ]; then padding=" "; else padding=""; fi
+        echo -e "${GREY}$padding$i) ${NC}${msgs[$i]}"
+    done
+
+    echo ""
+    read -p "Enter ID (0-49): " msg_id
+    if [[ "$msg_id" =~ ^[0-9]+$ ]] && [ "$msg_id" -ge 0 ] && [ "$msg_id" -lt 50 ]; then
+        COMMIT_MSG="${msgs[$msg_id]}"
+        echo -e "${BLUE}[EXEC]${NC} Git Add ...."
+        git add .
+        echo -e "${BLUE}[EXEC]${NC} Committing: '$COMMIT_MSG'"
+        git commit -m "$COMMIT_MSG"
+        echo -e "${BLUE}[SUCCESS]${NC} Committed."
+    else
+        echo -e "${RED}[ERROR]${NC} Invalid selection."
+    fi
+}
+
+echo -e "Current Dir: ${WHITE}$(pwd)${NC}"
+echo -e "1) ${WHITE}Initialize New Repo Here${NC}"
+echo -e "2) ${WHITE}Create 'side-chick' Branch${NC}"
+echo -e "3) ${WHITE}Smart Commit (Add All + Select Message)${NC}"
+echo -e "4) ${WHITE}Backup This Tool${NC}"
+echo -e "q) ${WHITE}Quit${NC}"
+echo ""
+read -p "Select Option: " choice
+
+case $choice in
+    1) git init; git add .; git commit -m "feat: Project Genesis"; echo -e "${BLUE}[SUCCESS]${NC} Repo initialized.";;
+    2) git checkout -b side-chick; echo -e "${BLUE}[SUCCESS]${NC} Switched to branch 'side-chick'.";;
+    3) do_commit;;
+    4) mkdir -p ~/batch_tech/backups; cp "$0" ~/batch_tech/backups/side-chick_$(date +"%Y%m%d").sh; echo -e "${BLUE}[INFO]${NC} Backed up.";;
+    q) echo "Exiting.";;
+    *) echo "Invalid option.";;
+esac
