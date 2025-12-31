@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# MODE defaults to "chill" if not set
+MODE="${BATCH_MODE:-chill}"
+BASE_DIR="$HOME/batch_tech/$MODE"
+DB="$BASE_DIR/db/index.db"
+DL_DIR="$BASE_DIR/downloads"
+
+# Initialize DB
+sqlite3 "$DB" "CREATE TABLE IF NOT EXISTS content (id TEXT PRIMARY KEY, title TEXT, channel TEXT, duration TEXT, url TEXT, type TEXT, platform TEXT);"
+
+# Input Handling
+INPUT="$1"
+
+# Function: Is this a URL or a Search?
+if [[ "$INPUT" =~ ^https?:// ]]; then
+    # It is a URL (Instagram, TikTok, generic site)
+    echo "🔗 URL detected. Fetching metadata from platform..."
+    # We fetch single video metadata
+    yt-dlp "$INPUT" --dump-json --skip-download --flat-playlist 2>/dev/null | \
+    jq -r '[.id, .title, .uploader, .duration_string, .webpage_url, ._type, .extractor] | @tsv' | \
+    while IFS=$'\t' read -r id title channel dur url type platform; do
+        safe_title=$(echo "$title" | tr -d '\t' | sed "s/'/''/g")
+        sqlite3 "$DB" "INSERT OR IGNORE INTO content VALUES ('$id', '$safe_title', '$channel', '$dur', '$url', '$type', '$platform');"
+    done
+elif [ ! -z "$INPUT" ]; then
+    # It is a Search Query (YouTube only)
+    echo "🔍 Searching YouTube for: $INPUT..."
+    yt-dlp "ytsearch20:$INPUT" --dump-json --skip-download --flat-playlist 2>/dev/null | \
+    jq -r '[.id, .title, .uploader, .duration_string, .webpage_url, ._type, "youtube"] | @tsv' | \
+    while IFS=$'\t' read -r id title channel dur url type platform; do
+        safe_title=$(echo "$title" | tr -d '\t' | sed "s/'/''/g")
+        sqlite3 "$DB" "INSERT OR IGNORE INTO content VALUES ('$id', '$safe_title', '$channel', '$dur', '$url', '$type', '$platform');"
+    done
+fi
+
+# Selector Interface
+# We show: [Platform] | Title | Channel
+SELECTED=$(sqlite3 "$DB" -separator $'\t' "SELECT platform, title, channel, duration, url, type FROM content ORDER BY rowid DESC;" | \
+fzf --delimiter=$'\t' --with-nth=1,2,3,4 --prompt="[$MODE] Select Content > " --border --height=50% --layout=reverse)
+
+[ -z "$SELECTED" ] && exit 0
+
+# Extract Selection
+PLATFORM=$(echo "$SELECTED" | awk -F'\t' '{print $1}')
+TITLE=$(echo "$SELECTED" | awk -F'\t' '{print $2}' | xargs)
+URL=$(echo "$SELECTED" | awk -F'\t' '{print $5}')
+TYPE=$(echo "$SELECTED" | awk -F'\t' '{print $6}')
+
+echo "🚀 Downloading ($PLATFORM): $TITLE"
+
+# Smart Download Logic
+if [[ "$TYPE" == *"playlist"* ]]; then
+    # Playlist/Course -> Subfolder
+    SAFE_DIR="$DL_DIR/${TITLE//[^a-zA-Z0-9_ -]/}"
+    mkdir -p "$SAFE_DIR"
+    cd "$SAFE_DIR"
+    # BEST QUALITY: Video + Audio merged into MP4
+    yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 "$URL"
+else
+    # Single Video
+    cd "$DL_DIR"
+    # BEST QUALITY: Video + Audio merged into MP4
+    yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 "$URL"
+fi
+
+# Auto-Backup
+cd "$BASE_DIR"
+if [ ! -d .git ]; then git init; git config user.name "Sloth"; git config user.email "sloth@batch.tech"; fi
+git add .
+git commit -m "Auto-save ($MODE): $TITLE" > /dev/null 2>&1
+echo "✅ Done."

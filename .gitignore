@@ -1,0 +1,13 @@
+# Ignore downloads
+learning/downloads/
+chill/downloads/
+
+# Ignore heavy media files anywhere
+*.mp4
+*.m4a
+*.webm
+*.part
+*.ytdl
+
+# Ignore system files
+.DS_Store
