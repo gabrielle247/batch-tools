@@ -47,38 +47,21 @@ do_download() {
 }
 export -f do_download
 
-# === LOGIC FORK ===
+# === FETCHING DATA (BUT NO AUTO-DOWNLOAD) ===
 
 if [[ "$INPUT" =~ ^https?:// ]]; then
-    # === DIRECT URL MODE (NO MENU) ===
-    echo -e "\033[1;34m🔗 URL Detected. Launching background download...\033[0m"
-    
-    # We define variables for the download
-    URL="$INPUT"
-    # We try to get a title quickly, but if it fails, we use a generic timestamp title so download isn't blocked
-    TITLE=$(yt-dlp --get-title "$URL" 2>/dev/null || echo "Download_$(date +%s)")
-    TYPE="video" # Default assumption
-    
-    # Also save to DB for history (Silent background update)
-    (
-        yt-dlp "$URL" --dump-json --skip-download --flat-playlist 2>/dev/null | \
-        jq -r '[.id, (.title // "Unknown"), (.uploader // "Unknown"), (.duration_string // .duration // "0:00"), .webpage_url, (._type // "video"), (.extractor // "generic")] | @tsv' | \
-        while IFS=$'\t' read -r id title channel dur url type platform; do
-            safe_title=$(echo "$title" | tr -d '\t' | sed "s/'/''/g")
-            sqlite3 "$DB" "INSERT OR IGNORE INTO content VALUES ('$id', '$safe_title', '$channel', '$dur', '$url', '$type', '$platform');"
-        done
-    ) &
-
-    # Launch Download Immediately
-    LOG_FILE="$LOG_DIR/$(date +%s)_download.log"
-    nohup bash -c "do_download \"$URL\" \"$TITLE\" \"$DL_DIR\" \"$LOG_FILE\" \"$TYPE\"" >/dev/null 2>&1 &
-    
-    echo -e "✅ \033[1;32mQueued:\033[0m $TITLE"
-    echo -e "   Check progress with 'tasks'"
-    exit 0
+    # === URL MODE ===
+    echo -e "\033[1;34m🔗 Fetching metadata for confirmation...\033[0m"
+    # We fetch the data and put it in the DB, but we DO NOT exit. We let it fall through to the menu.
+    yt-dlp "$INPUT" --dump-json --skip-download --flat-playlist 2>/dev/null | \
+    jq -r '[.id, (.title // "Unknown"), (.uploader // "Unknown"), (.duration_string // .duration // "0:00"), .webpage_url, (._type // "video"), (.extractor // "generic")] | @tsv' | \
+    while IFS=$'\t' read -r id title channel dur url type platform; do
+        safe_title=$(echo "$title" | tr -d '\t' | sed "s/'/''/g")
+        sqlite3 "$DB" "INSERT OR IGNORE INTO content VALUES ('$id', '$safe_title', '$channel', '$dur', '$url', '$type', '$platform');"
+    done
 
 elif [ ! -z "$INPUT" ]; then
-    # === SEARCH MODE (SHOW MENU) ===
+    # === SEARCH MODE ===
     echo -e "\033[1;34m🔍 Searching grid...\033[0m"
     yt-dlp "ytsearch20:$INPUT" --dump-json --skip-download --flat-playlist 2>/dev/null | \
     jq -r '[.id, .title, .uploader, .duration_string, .webpage_url, ._type, "youtube"] | @tsv' | \
@@ -88,7 +71,7 @@ elif [ ! -z "$INPUT" ]; then
     done
 fi
 
-# === THE MENU (Only runs if NOT a direct URL) ===
+# === THE CONFIRMATION MENU (Always Opens) ===
 ACTIVE_TASKS=$(pgrep -f "yt-dlp" | wc -l)
 export DB
 export MODE
@@ -101,11 +84,14 @@ fzf --delimiter=$'\t' --with-nth=2 \
     --padding=1 \
     --prompt="🚀 $MODE > " \
     --pointer="▶" \
-    --header="⚡ Batch Tech v3.2 | Active Downloads: $ACTIVE_TASKS | ESC to Exit" \
+    --header="⚡ Batch Tech v3.3 | Active Downloads: $ACTIVE_TASKS | ESC to Exit" \
     --preview-window="right:40%:wrap" \
     --preview '
         echo -e "\033[1;34mTitle:\033[0m   {2}"
         echo -e "\033[1;34mChannel:\033[0m {3}"
+        echo -e "\033[1;34mLength:\033[0m  {4}"
+        echo ""
+        echo -e "\033[1;30mType:\033[0m    {6}"
         echo -e "\033[1;30mURL:\033[0m     {5}"
     '
 )
