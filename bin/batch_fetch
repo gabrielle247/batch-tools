@@ -1,41 +1,32 @@
 #!/bin/bash
 
-# MODE defaults to "chill" if not set
+# === GREYWAY THEME & CONFIG ===
 MODE="${BATCH_MODE:-chill}"
 BASE_DIR="$HOME/batch_tech/$MODE"
 DB="$BASE_DIR/db/index.db"
 DL_DIR="$BASE_DIR/downloads"
+LOG_DIR="$HOME/batch_tech/logs"
+mkdir -p "$LOG_DIR" "$DL_DIR"
 
-# Initialize DB
+# Ensure DB exists
 sqlite3 "$DB" "CREATE TABLE IF NOT EXISTS content (id TEXT PRIMARY KEY, title TEXT, channel TEXT, duration TEXT, url TEXT, type TEXT, platform TEXT);"
 
-# Input Handling
+# === INPUT HANDLING ===
 INPUT="$1"
 
-# Function: Is this a URL or a Search?
+# 1. FETCHING DATA (Silent & Fast)
 if [[ "$INPUT" =~ ^https?:// ]]; then
-    # === URL MODE ===
-    echo "🔗 URL detected. Fetching metadata..."
-    
-    # We use jq with fallbacks (//) so it doesn't crash on missing data (like TikTok images having no duration)
+    # URL Mode
+    echo -e "\033[1;34m🔗 Fetching metadata...\033[0m"
     yt-dlp "$INPUT" --dump-json --skip-download --flat-playlist 2>/dev/null | \
-    jq -r '[
-        .id, 
-        (.title // "Unknown Title"), 
-        (.uploader // "Unknown Channel"), 
-        (.duration_string // .duration // "0:00"), 
-        .webpage_url, 
-        (._type // "video"), 
-        (.extractor // "generic")
-    ] | @tsv' | \
+    jq -r '[.id, (.title // "Unknown"), (.uploader // "Unknown"), (.duration_string // .duration // "0:00"), .webpage_url, (._type // "video"), (.extractor // "generic")] | @tsv' | \
     while IFS=$'\t' read -r id title channel dur url type platform; do
         safe_title=$(echo "$title" | tr -d '\t' | sed "s/'/''/g")
         sqlite3 "$DB" "INSERT OR IGNORE INTO content VALUES ('$id', '$safe_title', '$channel', '$dur', '$url', '$type', '$platform');"
     done
-
 elif [ ! -z "$INPUT" ]; then
-    # === SEARCH MODE (YouTube Only) ===
-    echo "🔍 Searching YouTube for: $INPUT..."
+    # Search Mode
+    echo -e "\033[1;34m🔍 Searching grid...\033[0m"
     yt-dlp "ytsearch20:$INPUT" --dump-json --skip-download --flat-playlist 2>/dev/null | \
     jq -r '[.id, .title, .uploader, .duration_string, .webpage_url, ._type, "youtube"] | @tsv' | \
     while IFS=$'\t' read -r id title channel dur url type platform; do
@@ -44,52 +35,83 @@ elif [ ! -z "$INPUT" ]; then
     done
 fi
 
-# Selector Interface
+# === THE CUSTOM UI (FZF RESKIN) ===
+ACTIVE_TASKS=$(pgrep -f "yt-dlp" | wc -l)
+export DB
+export MODE
+
+# FZF Command
 SELECTED=$(sqlite3 "$DB" -separator $'\t' "SELECT platform, title, channel, duration, url, type FROM content ORDER BY rowid DESC;" | \
-fzf --delimiter=$'\t' --with-nth=1,2,3,4 --prompt="[$MODE] Select Content > " --border --height=50% --layout=reverse)
+fzf --delimiter=$'\t' --with-nth=2 \
+    --layout=reverse \
+    --border=rounded \
+    --margin=1 \
+    --padding=1 \
+    --prompt="🚀 $MODE > " \
+    --pointer="▶" \
+    --marker="✓" \
+    --header="⚡ Batch Tech v3.1 | Active Downloads: $ACTIVE_TASKS | ESC to Exit" \
+    --color="bg+:#262626,bg:#1c1c1c,spinner:#00aaff,hl:#5f87af,fg:#d0d0d0,header:#00aaff,info:#afaf87,pointer:#00aaff,marker:#00aaff,prompt:#00aaff,border:#444444" \
+    --preview-window="right:40%:wrap" \
+    --preview '
+        echo -e "\033[1;34mTitle:\033[0m   {2}"
+        echo -e "\033[1;34mSource:\033[0m  {1}"
+        echo -e "\033[1;34mChannel:\033[0m {3}"
+        echo -e "\033[1;34mLength:\033[0m  {4}"
+        echo ""
+        echo -e "\033[1;30mType:\033[0m    {6}"
+        echo -e "\033[1;30mURL:\033[0m     {5}"
+    '
+)
 
 [ -z "$SELECTED" ] && exit 0
 
-# Extract Selection
+# === PARSE SELECTION ===
 PLATFORM=$(echo "$SELECTED" | awk -F'\t' '{print $1}')
 TITLE=$(echo "$SELECTED" | awk -F'\t' '{print $2}' | xargs)
 URL=$(echo "$SELECTED" | awk -F'\t' '{print $5}')
 TYPE=$(echo "$SELECTED" | awk -F'\t' '{print $6}')
 
-echo "🚀 Downloading ($PLATFORM): $TITLE"
+# === BACKGROUND WORKER ===
+do_download() {
+    local url="$1"
+    local title="$2"
+    local dir="$3"
+    local log="$4"
+    local mode="$5"
+    
+    mkdir -p "$dir"
+    cd "$dir"
+    echo "Starting: $title" > "$log"
 
-# === DOWNLOAD LOGIC ===
+    # QUALITY SETTING: Medium (Limit to 1080p to avoid 4K bloat)
+    local Q_FMT="bv*[height<=1080]+ba/b[height<=1080] / best"
 
-# 1. Create Safe Title for Folder Names
-SAFE_TITLE="${TITLE//[^a-zA-Z0-9_ -]/}"
-[ -z "$SAFE_TITLE" ] && SAFE_TITLE="Untitled_Content"
+    if [[ "$url" == *"tiktok"* ]]; then
+        # TikTok: Create folder, Download entire collection if link is a playlist
+        safe_t="${title//[^a-zA-Z0-9_ -]/}"
+        mkdir -p "$safe_t" && cd "$safe_t"
+        # Naming: Date + Title ensures Series (Part 1, Part 2) stay in order
+        yt-dlp --yes-playlist -o "%(upload_date)s_%(title)s.%(ext)s" "$url" >> "$log" 2>&1
 
-# 2. TikTok Specific Handling (Images/Slideshows)
-if [[ "$PLATFORM" == *"tiktok"* ]]; then
-    # Always create a subfolder for TikToks because they often split into multiple image files
-    TARGET_DIR="$DL_DIR/$SAFE_TITLE"
-    mkdir -p "$TARGET_DIR"
-    cd "$TARGET_DIR"
-    echo "📸 Fetching TikTok content into: $TARGET_DIR"
-    # We do NOT force MP4 here, allowing it to download images/audio naturally
-    yt-dlp "$URL"
+    elif [[ "$mode" == *"playlist"* ]]; then
+        # Courses: Create folder, Number files (01, 02...)
+        safe_t="${title//[^a-zA-Z0-9_ -]/}"
+        mkdir -p "$safe_t" && cd "$safe_t"
+        yt-dlp -f "$Q_FMT" --merge-output-format mp4 -o "%(playlist_index)s_%(title)s.%(ext)s" "$url" >> "$log" 2>&1
+    else
+        # Single Video
+        yt-dlp -f "$Q_FMT" --merge-output-format mp4 "$url" >> "$log" 2>&1
+    fi
+}
+export -f do_download
 
-# 3. Playlists (Courses)
-elif [[ "$TYPE" == *"playlist"* ]]; then
-    TARGET_DIR="$DL_DIR/$SAFE_TITLE"
-    mkdir -p "$TARGET_DIR"
-    cd "$TARGET_DIR"
-    yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 "$URL"
+# Log File for this task
+LOG_FILE="$LOG_DIR/$(date +%s)_download.log"
 
-# 4. Standard Single Video
-else
-    cd "$DL_DIR"
-    yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 "$URL"
-fi
+# Trigger Background Job
+nohup bash -c "do_download \"$URL\" \"$TITLE\" \"$DL_DIR\" \"$LOG_FILE\" \"$TYPE\"" >/dev/null 2>&1 &
 
-# Auto-Backup
-cd "$BASE_DIR"
-if [ ! -d .git ]; then git init; git config user.name "Sloth"; git config user.email "sloth@batch.tech"; fi
-git add .
-git commit -m "Auto-save ($MODE): $TITLE" > /dev/null 2>&1
-echo "✅ Done."
+# Notification
+echo -e "\n✅ \033[1;34mQueued in Background (Medium Quality):\033[0m $TITLE"
+echo -e "   Run 'tasks' to see progress.\n"
