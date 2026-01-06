@@ -1,0 +1,17 @@
+Starting download for: Drake is so Weird 😰
+[youtube] Extracting URL: https://www.youtube.com/shorts/IiuLePMNL6w
+[youtube] IiuLePMNL6w: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno is enabled by default; to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. See  https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] IiuLePMNL6w: Downloading android sdkless player API JSON
+[youtube] IiuLePMNL6w: Downloading web safari player API JSON
+WARNING: [youtube] IiuLePMNL6w: Some web_safari client https formats have been skipped as they are missing a url. YouTube is forcing SABR streaming for this client. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details
+[youtube] IiuLePMNL6w: Downloading m3u8 information
+WARNING: [youtube] IiuLePMNL6w: Some web client https formats have been skipped as they are missing a url. YouTube is forcing SABR streaming for this client. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details
+[info] IiuLePMNL6w: Downloading 1 format(s): 788+251-11
+[download] Destination: Drake is so Weird 😰 [IiuLePMNL6w].f788.mp4
+[download]   0.1% of    1.37MiB at   10.95KiB/s ETA 02:07[download]   0.2% of    1.37MiB at   32.52KiB/s ETA 00:42[download]   0.5% of    1.37MiB at   71.62KiB/s ETA 00:19[download]   1.1% of    1.37MiB at  139.97KiB/s ETA 00:09[download]   2.2% of    1.37MiB at  195.88KiB/s ETA 00:06[download]   4.5% of    1.37MiB at  163.28KiB/s ETA 00:08[download]   9.1% of    1.37MiB at  114.32KiB/s ETA 00:11[download]  15.4% of    1.37MiB at  143.72KiB/s ETA 00:08[download]  28.0% of    1.37MiB at  141.43KiB/s ETA 00:07[download]  37.9% of    1.37MiB at  142.44KiB/s ETA 00:06[download]  48.3% of    1.37MiB at  150.55KiB/s ETA 00:04[download]  61.8% of    1.37MiB at  152.28KiB/s ETA 00:03[download]  73.2% of    1.37MiB at  159.14KiB/s ETA 00:02[download]  88.2% of    1.37MiB at  180.75KiB/s ETA 00:00[download] 100.0% of    1.37MiB at  197.79KiB/s ETA 00:00[download] 100% of    1.37MiB in 00:00:07 at 180.83KiB/s 
+[download] Destination: Drake is so Weird 😰 [IiuLePMNL6w].f251-11.webm
+[download]   0.2% of  400.41KiB at   40.67KiB/s ETA 00:09[download]   0.7% of  400.41KiB at  116.73KiB/s ETA 00:03[download]   1.7% of  400.41KiB at  146.24KiB/s ETA 00:02[download]   3.7% of  400.41KiB at  275.24KiB/s ETA 00:01[download]   7.7% of  400.41KiB at  359.13KiB/s ETA 00:01[download]  15.7% of  400.41KiB at  456.65KiB/s ETA 00:00[download]  31.7% of  400.41KiB at  479.58KiB/s ETA 00:00[download]  63.7% of  400.41KiB at  448.83KiB/s ETA 00:00[download] 100.0% of  400.41KiB at  423.72KiB/s ETA 00:00[download] 100% of  400.41KiB in 00:00:01 at 249.58KiB/s 
+[Merger] Merging formats into "Drake is so Weird 😰 [IiuLePMNL6w].mp4"
+Deleting original file Drake is so Weird 😰 [IiuLePMNL6w].f788.mp4 (pass -k to keep)
+Deleting original file Drake is so Weird 😰 [IiuLePMNL6w].f251-11.webm (pass -k to keep)

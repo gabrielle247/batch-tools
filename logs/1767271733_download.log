@@ -1,0 +1,17 @@
+Starting download for: Wait a minute who are you meme
+[youtube] Extracting URL: https://www.youtube.com/shorts/KyQ6VeywlSI
+[youtube] KyQ6VeywlSI: Downloading webpage
+WARNING: [youtube] No supported JavaScript runtime could be found. Only deno is enabled by default; to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. See  https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one
+[youtube] KyQ6VeywlSI: Downloading android sdkless player API JSON
+[youtube] KyQ6VeywlSI: Downloading web safari player API JSON
+WARNING: [youtube] KyQ6VeywlSI: Some web_safari client https formats have been skipped as they are missing a url. YouTube is forcing SABR streaming for this client. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details
+[youtube] KyQ6VeywlSI: Downloading m3u8 information
+WARNING: [youtube] KyQ6VeywlSI: Some web client https formats have been skipped as they are missing a url. YouTube is forcing SABR streaming for this client. See  https://github.com/yt-dlp/yt-dlp/issues/12482  for more details
+[info] KyQ6VeywlSI: Downloading 1 format(s): 788+251
+[download] Destination: Wait a minute who are you meme [KyQ6VeywlSI].f788.mp4
+[download]   0.7% of  142.64KiB at  Unknown B/s ETA Unknown[download]   2.1% of  142.64KiB at    1.36MiB/s ETA 00:00  [download]   4.9% of  142.64KiB at    1.97MiB/s ETA 00:00[download]  10.5% of  142.64KiB at    3.01MiB/s ETA 00:00[download]  21.7% of  142.64KiB at  681.59KiB/s ETA 00:00[download]  44.2% of  142.64KiB at  490.51KiB/s ETA 00:00[download]  89.0% of  142.64KiB at  712.21KiB/s ETA 00:00[download] 100.0% of  142.64KiB at  367.95KiB/s ETA 00:00[download] 100% of  142.64KiB in 00:00:00 at 174.15KiB/s 
+[download] Destination: Wait a minute who are you meme [KyQ6VeywlSI].f251.webm
+[download]   1.0% of   95.69KiB at  Unknown B/s ETA Unknown[download]   3.1% of   95.69KiB at  530.66KiB/s ETA 00:00  [download]   7.3% of   95.69KiB at  826.81KiB/s ETA 00:00[download]  15.7% of   95.69KiB at    1.52MiB/s ETA 00:00[download]  32.4% of   95.69KiB at    2.76MiB/s ETA 00:00[download]  65.8% of   95.69KiB at  104.20KiB/s ETA 00:00[download] 100.0% of   95.69KiB at   82.95KiB/s ETA 00:00[download] 100% of   95.69KiB in 00:00:01 at 53.95KiB/s  
+[Merger] Merging formats into "Wait a minute who are you meme [KyQ6VeywlSI].mp4"
+Deleting original file Wait a minute who are you meme [KyQ6VeywlSI].f788.mp4 (pass -k to keep)
+Deleting original file Wait a minute who are you meme [KyQ6VeywlSI].f251.webm (pass -k to keep)
